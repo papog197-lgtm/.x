@@ -1081,16 +1081,18 @@ showLoading(self._sg, t, self._version, function()
     if self._destroyed then return end
     self._ready = true
     self._main.Visible = true
-    -- Refresh tab dopo visibilità
+    self:_setupDrag()
+    self:_setupGlow()
+    self:_startIntegrity()
+    self:_animIn()
+    -- Aspetta 2 frame per il layout, poi riseleziona
+    task.wait()
+    task.wait()
     if self._activeTab then
         local act = self._activeTab
         self._activeTab = nil
         self:_selectTab(act)
     end
-    self:_setupDrag()
-    self:_setupGlow()
-    self:_startIntegrity()
-    self:_animIn()
 end)
 
 	task.delay(6, function()
