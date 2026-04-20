@@ -1073,7 +1073,8 @@ function Library:Init(cfg)
 	self._ready = false
 	self._minimized = false
 
-	self:_buildGUI()
+self:_buildGUI()
+print("DEBUG:", self._main.Name, self._mainId, self._main.Name == self._mainId)
 
 	-- FIX LAG: posizione lerp già corretta prima del drag setup,
 	-- RenderStepped non gira inutilmente se non c'è movimento
@@ -1376,21 +1377,21 @@ function Library:_buildGUI()
 	closeBtn.MouseLeave:Connect(function() tw(closeBtn, { BackgroundTransparency = 0.25 }, 0.12) end)
 	minBtn.MouseButton1Click:Connect(function() self:_toggleMinimize() end)
 
-	self._integrity = {
-		sgId   = self._sgId,
-		mainId = self._mainId,
-		sg     = sg,
-		main   = main,
-	}
+self._integrity = {
+    sgId   = self._sgId,
+    mainId = self._main.Name,
+    sg     = sg,
+    main   = main,
+}
 end
 
 function Library:_animIn()
-	local m = self._main
-	local s = self._shadow
-	tw(m, { BackgroundTransparency = self._alpha }, 0.5, Enum.EasingStyle.Quart)
-	tw(s, { BackgroundTransparency = 0.84 }, 0.5)
+    local m = self._main
+    local s = self._shadow
+    m.Visible = true  -- ← QUESTA RIGA MANCA
+    tw(m, { BackgroundTransparency = self._alpha }, 0.5, Enum.EasingStyle.Quart)
+    tw(s, { BackgroundTransparency = 0.84 }, 0.5)
 end
-
 function Library:_setupDrag()
 	local main    = self._main
 	local topBar  = self._topBar
