@@ -1100,6 +1100,9 @@ end)
 		if not self._ready and not self._destroyed then
 			self._ready = true
             self._main.Visible = true   -- ← AGGIUNTO
+
+self._tabBar.Visible = false
+self._tabBar.Visible = true
 			self:_setupDrag()
 			self:_setupGlow()
 			self:_startIntegrity()
@@ -1310,7 +1313,7 @@ function Library:_buildGUI()
 		BackgroundTransparency = 0.15,
 		BorderSizePixel        = 0,
 		ZIndex                 = 4,
-		ClipsDescendants       = true,
+		ClipsDescendants       = false,
 		Parent                 = main,
 	})
 	self._tabBar    = tabBar
