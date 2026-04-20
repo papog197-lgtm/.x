@@ -1605,6 +1605,7 @@ function Library:CreateTab(name, icon)
 
 	self._tabs[tabId] = data
 	table.insert(self._tabOrder, tabId)
+print("CREATETAB: tabId=", tabId, "tabBar parent=", self._tabBar.Parent, "tabBtn parent=", tabBtn.Parent, "tabBtn visible=", tabBtn.Visible)
 
 	tabBtn.MouseEnter:Connect(function()
 		if self._activeTab ~= tabId then
@@ -1634,9 +1635,11 @@ function Library:_selectTab(tabId)
 		tw(tab.indicator, { BackgroundTransparency = 1 }, 0.12)
 	end
 	local sel = self._tabs[tabId]
-	if sel then
-		self._activeTab = tabId
-		sel.page.Visible = true
+if sel then
+    print("SELECTTAB: page=", sel.page, "visible prima=", sel.page.Visible, "parent=", sel.page.Parent, "parentVisible=", sel.page.Parent and sel.page.Parent.Visible)
+    self._activeTab = tabId
+    sel.page.Visible = true
+    print("SELECTTAB: page visible dopo=", sel.page.Visible)
 		tw(sel.button,    { BackgroundColor3 = t.TabActive, BackgroundTransparency = 0, TextColor3 = t.Text }, 0.18)
 		tw(sel.indicator, { BackgroundTransparency = 0 }, 0.18)
 	end
