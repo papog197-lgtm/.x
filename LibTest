@@ -1549,6 +1549,7 @@ function Library:CreateTab(name, icon)
 		ZIndex                 = 6,
 		Parent                 = self._tabBar,
 	})
+print("tabBar name=", self._tabBar.Name, "tabBtn.Parent.Name=", tabBtn.Parent.Name, "sono uguali=", self._tabBar.Name == tabBtn.Parent.Name)
 	new("UICorner",  { CornerRadius = UDim.new(0, 7), Parent = tabBtn })
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8), Parent = tabBtn })
 
