@@ -1,0 +1,1244 @@
+local ok = pcall(function()
+	assert(typeof ~= nil)
+	assert(game and workspace)
+	game:GetService("Players")
+	game:GetService("RunService")
+end)
+if not ok then return {} end
+
+local rs = game:GetService("RunService")
+local isServerOk, isServer = pcall(function() return rs:IsServer() end)
+if isServerOk and isServer then return {} end
+
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui          = game:GetService("CoreGui")
+local LocalPlayer      = Players.LocalPlayer
+
+local function genId(n)
+	n = n or 12
+	local c = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	local s = ""
+	for _ = 1, n do
+		local r = math.random(1, #c)
+		s = s .. c:sub(r, r)
+	end
+	return s
+end
+
+local function tw(obj, props, dur, style, dir)
+	local t = TweenService:Create(
+		obj,
+		TweenInfo.new(dur or 0.25, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out),
+		props
+	)
+	t:Play()
+	return t
+end
+
+local function new(class, props)
+	local i = Instance.new(class)
+	for k, v in pairs(props) do
+		if k ~= "Parent" then i[k] = v end
+	end
+	if props.Parent then i.Parent = props.Parent end
+	return i
+end
+
+local THEME = {
+	Bg          = Color3.fromRGB(12,  6,  22),
+	BgSec       = Color3.fromRGB(20, 11,  36),
+	BgTer       = Color3.fromRGB(30, 16,  52),
+	Accent      = Color3.fromRGB(130, 38, 220),
+	AccentGlow  = Color3.fromRGB(165, 78, 255),
+	AccentDark  = Color3.fromRGB(78,  14, 148),
+	TopBar      = Color3.fromRGB(18,   9,  32),
+	Border      = Color3.fromRGB(68,  32, 118),
+	Text        = Color3.fromRGB(242, 232, 255),
+	TextSub     = Color3.fromRGB(168, 142, 208),
+	TextMuted   = Color3.fromRGB(108,  86, 142),
+	ToggleOn    = Color3.fromRGB(130,  38, 220),
+	ToggleOff   = Color3.fromRGB(48,   26,  72),
+	SliderFill  = Color3.fromRGB(130,  38, 220),
+	SliderBg    = Color3.fromRGB(36,   20,  58),
+	TabActive   = Color3.fromRGB(130,  38, 220),
+	TabHover    = Color3.fromRGB(48,   26,  76),
+	TabInactive = Color3.fromRGB(26,   14,  46),
+	Success     = Color3.fromRGB(72,  196, 112),
+	Warning     = Color3.fromRGB(252, 162,  38),
+	Error       = Color3.fromRGB(218,  56,  56),
+	NotifyBg    = Color3.fromRGB(26,   12,  46),
+	InputBg     = Color3.fromRGB(22,   12,  38),
+	Separator   = Color3.fromRGB(52,   28,  86),
+}
+
+local TabMethods = {}
+TabMethods.__index = TabMethods
+
+function TabMethods:_row(h)
+	h = h or 36
+	local row = new("Frame", {
+		Size                  = UDim2.new(1, 0, 0, h),
+		BackgroundColor3      = self._lib._t.BgSec,
+		BackgroundTransparency = 0.3,
+		BorderSizePixel       = 0,
+		Name                  = genId(6),
+		Parent                = self.page,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 8), Parent = row })
+	new("UIStroke", {
+		Color        = self._lib._t.Border,
+		Thickness    = 1,
+		Transparency = 0.6,
+		Parent       = row,
+	})
+	return row
+end
+
+function TabMethods:Label(text)
+	local row = self:_row(28)
+	row.BackgroundTransparency = 1
+	new("TextLabel", {
+		Size                  = UDim2.new(1, -16, 1, 0),
+		Position              = UDim2.new(0, 8, 0, 0),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = text or "",
+		TextColor3            = self._lib._t.TextMuted,
+		TextSize              = 11,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		Name                  = genId(5),
+		Parent                = row,
+	})
+end
+
+function TabMethods:Separator(text)
+	local row = self:_row(24)
+	row.BackgroundTransparency = 1
+	local t = self._lib._t
+	local line = new("Frame", {
+		Size             = UDim2.new(1, -16, 0, 1),
+		Position         = UDim2.new(0, 8, 0.5, 0),
+		BackgroundColor3 = t.Separator,
+		BorderSizePixel  = 0,
+		Name             = genId(5),
+		Parent           = row,
+	})
+	if text and text ~= "" then
+		line.Size = UDim2.new(0.4, 0, 0, 1)
+		new("TextLabel", {
+			Size                  = UDim2.new(0, 120, 1, 0),
+			Position              = UDim2.new(0.42, 0, 0, 0),
+			BackgroundTransparency = 1,
+			Font                  = Enum.Font.GothamBold,
+			Text                  = text,
+			TextColor3            = t.TextMuted,
+			TextSize              = 10,
+			TextXAlignment        = Enum.TextXAlignment.Left,
+			Name                  = genId(5),
+			Parent                = row,
+		})
+	end
+end
+
+function TabMethods:Button(text, callback)
+	local t   = self._lib._t
+	local row = self:_row(36)
+	local btn = new("TextButton", {
+		Size                  = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel       = 0,
+		Font                  = Enum.Font.GothamBold,
+		Text                  = "",
+		Name                  = genId(6),
+		Parent                = row,
+	})
+	new("TextLabel", {
+		Size                  = UDim2.new(1, -16, 1, 0),
+		Position              = UDim2.new(0, 12, 0, 0),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.GothamBold,
+		Text                  = text or "Button",
+		TextColor3            = t.Text,
+		TextSize              = 13,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		Name                  = genId(5),
+		Parent                = btn,
+	})
+	local arrow = new("TextLabel", {
+		Size                  = UDim2.new(0, 20, 1, 0),
+		Position              = UDim2.new(1, -26, 0, 0),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.GothamBold,
+		Text                  = "›",
+		TextColor3            = t.Accent,
+		TextSize              = 18,
+		Name                  = genId(5),
+		Parent                = btn,
+	})
+	btn.MouseEnter:Connect(function()
+		tw(row, { BackgroundColor3 = t.TabHover, BackgroundTransparency = 0 }, 0.15)
+	end)
+	btn.MouseLeave:Connect(function()
+		tw(row, { BackgroundColor3 = t.BgSec, BackgroundTransparency = 0.3 }, 0.15)
+	end)
+	btn.MouseButton1Down:Connect(function()
+		tw(row, { BackgroundColor3 = t.AccentDark }, 0.1)
+	end)
+	btn.MouseButton1Up:Connect(function()
+		tw(row, { BackgroundColor3 = t.TabHover }, 0.1)
+	end)
+	btn.MouseButton1Click:Connect(function()
+		if self._lib._locked or self._lib._destroyed then return end
+		if callback then
+			local s, e = pcall(callback)
+			if not s then warn("[PhantomUI] Button error: " .. tostring(e)) end
+		end
+	end)
+end
+
+function TabMethods:Toggle(text, default, callback)
+	local t      = self._lib._t
+	local row    = self:_row(38)
+	local state  = default == true
+	new("TextLabel", {
+		Size                  = UDim2.new(1, -60, 1, 0),
+		Position              = UDim2.new(0, 12, 0, 0),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = text or "Toggle",
+		TextColor3            = t.Text,
+		TextSize              = 13,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		Name                  = genId(5),
+		Parent                = row,
+	})
+	local track = new("Frame", {
+		Size             = UDim2.new(0, 44, 0, 22),
+		Position         = UDim2.new(1, -54, 0.5, -11),
+		BackgroundColor3 = state and t.ToggleOn or t.ToggleOff,
+		BorderSizePixel  = 0,
+		Name             = genId(5),
+		Parent           = row,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(1, 0), Parent = track })
+	new("UIStroke",  { Color = t.Border, Thickness = 1, Transparency = 0.4, Parent = track })
+	local knob = new("Frame", {
+		Size             = UDim2.new(0, 16, 0, 16),
+		Position         = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8),
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BorderSizePixel  = 0,
+		Name             = genId(5),
+		Parent           = track,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = knob })
+	local hitbox = new("TextButton", {
+		Size                  = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		Text                  = "",
+		Name                  = genId(5),
+		Parent                = row,
+	})
+	hitbox.MouseButton1Click:Connect(function()
+		if self._lib._locked or self._lib._destroyed then return end
+		state = not state
+		tw(track, { BackgroundColor3 = state and t.ToggleOn or t.ToggleOff }, 0.2)
+		tw(knob,  { Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8) }, 0.2)
+		if callback then
+			local s, e = pcall(callback, state)
+			if not s then warn("[PhantomUI] Toggle error: " .. tostring(e)) end
+		end
+	end)
+	return {
+		SetValue = function(_, v)
+			state = v == true
+			tw(track, { BackgroundColor3 = state and t.ToggleOn or t.ToggleOff }, 0.2)
+			tw(knob,  { Position = state and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8) }, 0.2)
+		end,
+		GetValue = function() return state end,
+	}
+end
+
+function TabMethods:Slider(text, min, max, default, callback)
+	local t    = self._lib._t
+	local row  = self:_row(52)
+	local val  = math.clamp(default or min, min, max)
+	new("TextLabel", {
+		Size                  = UDim2.new(0.6, 0, 0, 22),
+		Position              = UDim2.new(0, 12, 0, 4),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = text or "Slider",
+		TextColor3            = t.Text,
+		TextSize              = 13,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		Name                  = genId(5),
+		Parent                = row,
+	})
+	local valLabel = new("TextLabel", {
+		Size                  = UDim2.new(0.35, 0, 0, 22),
+		Position              = UDim2.new(0.64, 0, 0, 4),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.GothamBold,
+		Text                  = tostring(math.floor(val)),
+		TextColor3            = t.Accent,
+		TextSize              = 13,
+		TextXAlignment        = Enum.TextXAlignment.Right,
+		Name                  = genId(5),
+		Parent                = row,
+	})
+	local track = new("Frame", {
+		Size             = UDim2.new(1, -24, 0, 6),
+		Position         = UDim2.new(0, 12, 0, 32),
+		BackgroundColor3 = t.SliderBg,
+		BorderSizePixel  = 0,
+		Name             = genId(5),
+		Parent           = row,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = track })
+	local fillPct = (val - min) / (max - min)
+	local fill = new("Frame", {
+		Size             = UDim2.new(fillPct, 0, 1, 0),
+		BackgroundColor3 = t.SliderFill,
+		BorderSizePixel  = 0,
+		Name             = genId(5),
+		Parent           = track,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = fill })
+	new("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, t.AccentGlow),
+			ColorSequenceKeypoint.new(1, t.Accent),
+		}),
+		Parent = fill,
+	})
+	local thumb = new("Frame", {
+		Size             = UDim2.new(0, 14, 0, 14),
+		Position         = UDim2.new(fillPct, -7, 0.5, -7),
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BorderSizePixel  = 0,
+		ZIndex           = 3,
+		Name             = genId(5),
+		Parent           = track,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(1, 0), Parent = thumb })
+	new("UIStroke",  { Color = t.Accent, Thickness = 2, Parent = thumb })
+	local dragging = false
+	local hitbox = new("TextButton", {
+		Size                  = UDim2.new(1, 0, 0, 30),
+		Position              = UDim2.new(0, 0, 0, -12),
+		BackgroundTransparency = 1,
+		Text                  = "",
+		ZIndex                = 4,
+		Name                  = genId(5),
+		Parent                = track,
+	})
+	local function updateSlider(inputX)
+		local absX  = track.AbsolutePosition.X
+		local absW  = track.AbsoluteSize.X
+		local pct   = math.clamp((inputX - absX) / absW, 0, 1)
+		local newVal = math.floor(min + (max - min) * pct)
+		val = newVal
+		valLabel.Text = tostring(newVal)
+		tw(fill,  { Size = UDim2.new(pct, 0, 1, 0) }, 0.05)
+		tw(thumb, { Position = UDim2.new(pct, -7, 0.5, -7) }, 0.05)
+		if callback then
+			local s, e = pcall(callback, newVal)
+			if not s then warn("[PhantomUI] Slider error: " .. tostring(e)) end
+		end
+	end
+	hitbox.MouseButton1Down:Connect(function(x, _)
+		if self._lib._locked or self._lib._destroyed then return end
+		dragging = true
+		updateSlider(x)
+	end)
+	local moveConn = UserInputService.InputChanged:Connect(function(inp)
+		if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+			updateSlider(inp.Position.X)
+		end
+	end)
+	local upConn = UserInputService.InputEnded:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
+		end
+	end)
+	table.insert(self._lib._conn, moveConn)
+	table.insert(self._lib._conn, upConn)
+	return {
+		SetValue = function(_, v)
+			val = math.clamp(v, min, max)
+			local pct = (val - min) / (max - min)
+			valLabel.Text = tostring(math.floor(val))
+			tw(fill,  { Size = UDim2.new(pct, 0, 1, 0) }, 0.1)
+			tw(thumb, { Position = UDim2.new(pct, -7, 0.5, -7) }, 0.1)
+		end,
+		GetValue = function() return val end,
+	}
+end
+
+function TabMethods:Input(text, placeholder, callback)
+	local t   = self._lib._t
+	local row = self:_row(54)
+	new("TextLabel", {
+		Size                  = UDim2.new(1, -16, 0, 20),
+		Position              = UDim2.new(0, 12, 0, 4),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = text or "Input",
+		TextColor3            = t.Text,
+		TextSize              = 12,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		Name                  = genId(5),
+		Parent                = row,
+	})
+	local box = new("TextBox", {
+		Size                  = UDim2.new(1, -24, 0, 24),
+		Position              = UDim2.new(0, 12, 0, 25),
+		BackgroundColor3      = t.InputBg,
+		BackgroundTransparency = 0.2,
+		BorderSizePixel       = 0,
+		Font                  = Enum.Font.Gotham,
+		PlaceholderText       = placeholder or "...",
+		PlaceholderColor3     = t.TextMuted,
+		Text                  = "",
+		TextColor3            = t.Text,
+		TextSize              = 12,
+		ClearTextOnFocus      = false,
+		Name                  = genId(6),
+		Parent                = row,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(0, 6), Parent = box })
+	new("UIStroke",  { Color = t.Border, Thickness = 1, Transparency = 0.4, Parent = box })
+	new("UIPadding", { PaddingLeft = UDim.new(0, 8), Parent = box })
+	box.Focused:Connect(function()
+		tw(box, { BackgroundTransparency = 0 }, 0.15)
+	end)
+	box.FocusLost:Connect(function()
+		tw(box, { BackgroundTransparency = 0.2 }, 0.15)
+		if self._lib._locked or self._lib._destroyed then return end
+		if callback and box.Text ~= "" then
+			local s, e = pcall(callback, box.Text)
+			if not s then warn("[PhantomUI] Input error: " .. tostring(e)) end
+		end
+	end)
+	return {
+		GetValue = function() return box.Text end,
+		SetValue = function(_, v) box.Text = v or "" end,
+	}
+end
+
+function TabMethods:Dropdown(text, options, default, callback)
+	local t      = self._lib._t
+	local row    = self:_row(36)
+	local open   = false
+	local chosen = default or (options and options[1]) or ""
+	local panels = {}
+	new("TextLabel", {
+		Size                  = UDim2.new(0.5, 0, 1, 0),
+		Position              = UDim2.new(0, 12, 0, 0),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = text or "Dropdown",
+		TextColor3            = t.Text,
+		TextSize              = 13,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		Name                  = genId(5),
+		Parent                = row,
+	})
+	local dropBtn = new("TextButton", {
+		Size             = UDim2.new(0, 130, 0, 26),
+		Position         = UDim2.new(1, -138, 0.5, -13),
+		BackgroundColor3 = t.BgTer,
+		BorderSizePixel  = 0,
+		Font             = Enum.Font.Gotham,
+		Text             = chosen .. "  ▾",
+		TextColor3       = t.TextSub,
+		TextSize         = 12,
+		Name             = genId(6),
+		Parent           = row,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = dropBtn })
+	new("UIStroke", { Color = t.Border, Thickness = 1, Transparency = 0.4, Parent = dropBtn })
+	local panel = new("Frame", {
+		Size             = UDim2.new(0, 130, 0, #options * 28 + 6),
+		Position         = UDim2.new(1, -138, 1, 2),
+		BackgroundColor3 = t.DropBg,
+		BorderSizePixel  = 0,
+		Visible          = false,
+		ZIndex           = 20,
+		Name             = genId(6),
+		Parent           = row,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(0, 8), Parent = panel })
+	new("UIStroke",  { Color = t.Accent, Thickness = 1, Transparency = 0.5, Parent = panel })
+	new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2), Parent = panel })
+	new("UIPadding",    { PaddingTop = UDim.new(0, 3), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4), Parent = panel })
+	if options then
+		for i, opt in ipairs(options) do
+			local optBtn = new("TextButton", {
+				Size                   = UDim2.new(1, 0, 0, 26),
+				BackgroundColor3       = t.BgSec,
+				BackgroundTransparency = 0.5,
+				BorderSizePixel        = 0,
+				Font                   = Enum.Font.Gotham,
+				Text                   = opt,
+				TextColor3             = t.TextSub,
+				TextSize               = 12,
+				LayoutOrder            = i,
+				ZIndex                 = 21,
+				Name                   = genId(5),
+				Parent                 = panel,
+			})
+			new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = optBtn })
+			optBtn.MouseEnter:Connect(function()
+				tw(optBtn, { BackgroundTransparency = 0, TextColor3 = t.Text }, 0.1)
+			end)
+			optBtn.MouseLeave:Connect(function()
+				tw(optBtn, { BackgroundTransparency = 0.5, TextColor3 = t.TextSub }, 0.1)
+			end)
+			optBtn.MouseButton1Click:Connect(function()
+				if self._lib._locked or self._lib._destroyed then return end
+				chosen = opt
+				dropBtn.Text = opt .. "  ▾"
+				panel.Visible = false
+				open = false
+				if callback then
+					local s, e = pcall(callback, opt)
+					if not s then warn("[PhantomUI] Dropdown error: " .. tostring(e)) end
+				end
+			end)
+		end
+	end
+	dropBtn.MouseButton1Click:Connect(function()
+		if self._lib._locked or self._lib._destroyed then return end
+		open = not open
+		panel.Visible = open
+	end)
+	return {
+		GetValue = function() return chosen end,
+		SetOptions = function(_, newOpts)
+			for _, c in ipairs(panel:GetChildren()) do
+				if c:IsA("TextButton") then c:Destroy() end
+			end
+		end,
+	}
+end
+
+function TabMethods:ColorPicker(text, default, callback)
+	local t      = self._lib._t
+	local row    = self:_row(36)
+	local color  = default or t.Accent
+	new("TextLabel", {
+		Size                  = UDim2.new(0.6, 0, 1, 0),
+		Position              = UDim2.new(0, 12, 0, 0),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = text or "Color",
+		TextColor3            = t.Text,
+		TextSize              = 13,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		Name                  = genId(5),
+		Parent                = row,
+	})
+	local swatch = new("TextButton", {
+		Size             = UDim2.new(0, 30, 0, 22),
+		Position         = UDim2.new(1, -40, 0.5, -11),
+		BackgroundColor3 = color,
+		BorderSizePixel  = 0,
+		Text             = "",
+		Name             = genId(5),
+		Parent           = row,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(0, 6), Parent = swatch })
+	new("UIStroke",  { Color = t.Border, Thickness = 1, Transparency = 0.3, Parent = swatch })
+	local PRESETS = {
+		Color3.fromRGB(130, 38, 220),
+		Color3.fromRGB(56,  189, 248),
+		Color3.fromRGB(250, 204,  21),
+		Color3.fromRGB(34,  197,  94),
+		Color3.fromRGB(239,  68,  68),
+		Color3.fromRGB(251, 146,  60),
+		Color3.fromRGB(236,  72, 153),
+		Color3.fromRGB(255, 255, 255),
+	}
+	local panel = new("Frame", {
+		Size             = UDim2.new(0, 180, 0, 42),
+		Position         = UDim2.new(1, -188, 1, 4),
+		BackgroundColor3 = t.BgTer,
+		BorderSizePixel  = 0,
+		Visible          = false,
+		ZIndex           = 20,
+		Name             = genId(6),
+		Parent           = row,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(0, 8), Parent = panel })
+	new("UIStroke",  { Color = t.Accent, Thickness = 1, Transparency = 0.5, Parent = panel })
+	new("UIListLayout", {
+		FillDirection  = Enum.FillDirection.Horizontal,
+		SortOrder      = Enum.SortOrder.LayoutOrder,
+		Padding        = UDim.new(0, 4),
+		Parent         = panel,
+	})
+	new("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingLeft = UDim.new(0, 6), Parent = panel })
+	for i, c in ipairs(PRESETS) do
+		local dot = new("TextButton", {
+			Size             = UDim2.new(0, 18, 0, 18),
+			BackgroundColor3 = c,
+			BorderSizePixel  = 0,
+			Text             = "",
+			LayoutOrder      = i,
+			ZIndex           = 21,
+			Name             = genId(4),
+			Parent           = panel,
+		})
+		new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
+		dot.MouseButton1Click:Connect(function()
+			if self._lib._locked or self._lib._destroyed then return end
+			color = c
+			swatch.BackgroundColor3 = c
+			panel.Visible = false
+			if callback then
+				local s, e = pcall(callback, c)
+				if not s then warn("[PhantomUI] ColorPicker error: " .. tostring(e)) end
+			end
+		end)
+	end
+	local open = false
+	swatch.MouseButton1Click:Connect(function()
+		if self._lib._locked or self._lib._destroyed then return end
+		open = not open
+		panel.Visible = open
+	end)
+	return {
+		GetValue = function() return color end,
+		SetValue = function(_, c)
+			color = c
+			swatch.BackgroundColor3 = c
+		end,
+	}
+end
+
+local Library = {}
+Library.__index = Library
+
+function Library:Init(cfg)
+	if not cfg then return nil end
+	if type(cfg.Key) ~= "string" or #cfg.Key < 6 then return nil end
+
+	local self      = setmetatable({}, Library)
+	self._id        = genId(16)
+	self._frameId   = genId(10)
+	self._cfg       = cfg
+	self._tabs      = {}
+	self._tabOrder  = {}
+	self._activeTab = nil
+	self._conn      = {}
+	self._locked    = false
+	self._destroyed = false
+
+	local t = {}
+	for k, v in pairs(THEME) do t[k] = v end
+	if cfg.AccentColor then
+		t.Accent     = cfg.AccentColor
+		t.AccentGlow = cfg.AccentColor
+		t.ToggleOn   = cfg.AccentColor
+		t.SliderFill = cfg.AccentColor
+		t.TabActive  = cfg.AccentColor
+	end
+	if cfg.BackgroundColor then t.Bg = cfg.BackgroundColor end
+	if cfg.TextColor       then t.Text = cfg.TextColor end
+	self._t           = t
+	self._alpha       = math.clamp(cfg.Transparency or 0.05, 0, 0.5)
+	self._title       = cfg.Title    or "PhantomUI"
+	self._subtitle    = cfg.Subtitle or ""
+	self._minimized   = false
+
+	self:_buildGUI()
+	self:_setupDrag()
+	self:_startIntegrity()
+	self:_animIn()
+
+	return self
+end
+
+function Library:_buildGUI()
+	local t  = self._t
+	local al = self._alpha
+
+	local parent = CoreGui
+	local ok2, _ = pcall(function()
+		local _ = CoreGui.Name
+	end)
+	if not ok2 then
+		parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer.PlayerGui
+	end
+
+	local sgName = "_" .. self._id
+	local sg = new("ScreenGui", {
+		Name           = sgName,
+		ResetOnSpawn   = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent         = parent,
+	})
+	self._sg     = sg
+	self._sgName = sgName
+
+	local shadow = new("Frame", {
+		Name                  = genId(6),
+		Size                  = UDim2.new(0, 512, 0, 382),
+		Position              = UDim2.new(0.5, -256, 0.5, -191),
+		BackgroundColor3      = t.Accent,
+		BackgroundTransparency = 0.82,
+		BorderSizePixel       = 0,
+		Parent                = sg,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 16), Parent = shadow })
+	self._shadow = shadow
+
+	local mainName = genId(10)
+	local main = new("Frame", {
+		Name                  = mainName,
+		Size                  = UDim2.new(0, 502, 0, 372),
+		Position              = UDim2.new(0.5, -251, 0.5, -186),
+		BackgroundColor3      = t.Bg,
+		BackgroundTransparency = al,
+		BorderSizePixel       = 0,
+		ClipsDescendants      = true,
+		Parent                = sg,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = main })
+	new("UIStroke", { Color = t.Border, Thickness = 1.5, Transparency = 0.3, Parent = main })
+	self._main     = main
+	self._mainName = mainName
+
+	local topAccent = new("Frame", {
+		Name             = genId(5),
+		Size             = UDim2.new(1, 0, 0, 3),
+		Position         = UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = t.Accent,
+		BorderSizePixel  = 0,
+		ZIndex           = 6,
+		Parent           = main,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 2), Parent = topAccent })
+	new("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0,    t.AccentGlow),
+			ColorSequenceKeypoint.new(0.5,  t.Accent),
+			ColorSequenceKeypoint.new(1,    t.AccentDark),
+		}),
+		Parent = topAccent,
+	})
+
+	local glowTR = new("Frame", {
+		Name                  = genId(5),
+		Size                  = UDim2.new(0, 140, 0, 140),
+		Position              = UDim2.new(1, -100, 0, -60),
+		BackgroundColor3      = t.AccentGlow,
+		BackgroundTransparency = 0.87,
+		BorderSizePixel       = 0,
+		ZIndex                = 2,
+		Parent                = main,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = glowTR })
+
+	local glowBL = new("Frame", {
+		Name                  = genId(5),
+		Size                  = UDim2.new(0, 100, 0, 100),
+		Position              = UDim2.new(0, -30, 1, -80),
+		BackgroundColor3      = t.Accent,
+		BackgroundTransparency = 0.9,
+		BorderSizePixel       = 0,
+		ZIndex                = 2,
+		Parent                = main,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = glowBL })
+
+	local topBar = new("Frame", {
+		Name                  = genId(7),
+		Size                  = UDim2.new(1, 0, 0, 44),
+		Position              = UDim2.new(0, 0, 0, 3),
+		BackgroundColor3      = t.TopBar,
+		BackgroundTransparency = 0.1,
+		BorderSizePixel       = 0,
+		ZIndex                = 5,
+		Parent                = main,
+	})
+	self._topBar = topBar
+
+	local dot = new("Frame", {
+		Name             = genId(4),
+		Size             = UDim2.new(0, 8, 0, 8),
+		Position         = UDim2.new(0, 12, 0.5, -4),
+		BackgroundColor3 = t.AccentGlow,
+		BorderSizePixel  = 0,
+		ZIndex           = 7,
+		Parent           = topBar,
+	})
+	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
+
+	new("TextLabel", {
+		Name                  = genId(5),
+		Size                  = UDim2.new(0, 220, 0, 22),
+		Position              = UDim2.new(0, 26, 0, 7),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.GothamBold,
+		Text                  = self._title,
+		TextColor3            = t.Text,
+		TextSize              = 14,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		ZIndex                = 7,
+		Parent                = topBar,
+	})
+	new("TextLabel", {
+		Name                  = genId(5),
+		Size                  = UDim2.new(0, 220, 0, 16),
+		Position              = UDim2.new(0, 26, 0, 26),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = self._subtitle,
+		TextColor3            = t.TextMuted,
+		TextSize              = 11,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		ZIndex                = 7,
+		Parent                = topBar,
+	})
+
+	local closeBtn = new("TextButton", {
+		Name                  = genId(6),
+		Size                  = UDim2.new(0, 28, 0, 28),
+		Position              = UDim2.new(1, -36, 0.5, -14),
+		BackgroundColor3      = Color3.fromRGB(180, 50, 50),
+		BackgroundTransparency = 0.3,
+		BorderSizePixel       = 0,
+		Text                  = "✕",
+		TextColor3            = t.Text,
+		TextSize              = 12,
+		Font                  = Enum.Font.GothamBold,
+		ZIndex                = 8,
+		Parent                = topBar,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = closeBtn })
+
+	local minBtn = new("TextButton", {
+		Name                  = genId(6),
+		Size                  = UDim2.new(0, 28, 0, 28),
+		Position              = UDim2.new(1, -70, 0.5, -14),
+		BackgroundColor3      = t.BgTer,
+		BackgroundTransparency = 0.2,
+		BorderSizePixel       = 0,
+		Text                  = "—",
+		TextColor3            = t.TextSub,
+		TextSize              = 12,
+		Font                  = Enum.Font.GothamBold,
+		ZIndex                = 8,
+		Parent                = topBar,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = minBtn })
+	self._minBtn = minBtn
+
+	local tabBar = new("Frame", {
+		Name                  = genId(7),
+		Size                  = UDim2.new(0, 112, 1, -47),
+		Position              = UDim2.new(0, 0, 0, 47),
+		BackgroundColor3      = t.BgSec,
+		BackgroundTransparency = 0.1,
+		BorderSizePixel       = 0,
+		ZIndex                = 4,
+		Parent                = main,
+	})
+	self._tabBar = tabBar
+
+	new("Frame", {
+		Name             = genId(4),
+		Size             = UDim2.new(0, 1, 1, 0),
+		Position         = UDim2.new(1, 0, 0, 0),
+		BackgroundColor3 = t.Border,
+		BackgroundTransparency = 0.5,
+		BorderSizePixel  = 0,
+		ZIndex           = 5,
+		Parent           = tabBar,
+	})
+
+	new("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding   = UDim.new(0, 3),
+		Parent    = tabBar,
+	})
+	new("UIPadding", {
+		PaddingTop   = UDim.new(0, 8),
+		PaddingLeft  = UDim.new(0, 6),
+		PaddingRight = UDim.new(0, 6),
+		Parent       = tabBar,
+	})
+
+	local contentArea = new("Frame", {
+		Name                  = genId(7),
+		Size                  = UDim2.new(1, -112, 1, -47),
+		Position              = UDim2.new(0, 112, 0, 47),
+		BackgroundTransparency = 1,
+		BorderSizePixel       = 0,
+		ClipsDescendants      = true,
+		ZIndex                = 4,
+		Parent                = main,
+	})
+	self._contentArea = contentArea
+
+	local notifyAnchor = new("Frame", {
+		Name                  = genId(6),
+		Size                  = UDim2.new(0, 280, 0, 0),
+		Position              = UDim2.new(1, -295, 1, -10),
+		BackgroundTransparency = 1,
+		AnchorPoint           = Vector2.new(0, 1),
+		ZIndex                = 50,
+		Parent                = sg,
+	})
+	new("UIListLayout", {
+		SortOrder          = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment  = Enum.VerticalAlignment.Bottom,
+		Padding            = UDim.new(0, 6),
+		Parent             = notifyAnchor,
+	})
+	self._notifyAnchor = notifyAnchor
+	self._notifyCount  = 0
+
+	closeBtn.MouseButton1Click:Connect(function() self:Destroy() end)
+	closeBtn.MouseEnter:Connect(function() tw(closeBtn, { BackgroundTransparency = 0 }, 0.15) end)
+	closeBtn.MouseLeave:Connect(function() tw(closeBtn, { BackgroundTransparency = 0.3 }, 0.15) end)
+	minBtn.MouseButton1Click:Connect(function() self:_toggleMinimize() end)
+
+	self._integrity = {
+		sgName   = self._sgName,
+		mainName = self._mainName,
+		sg       = sg,
+		main     = main,
+	}
+end
+
+function Library:_animIn()
+	local m = self._main
+	local s = self._shadow
+	m.BackgroundTransparency = 1
+	m.Position = UDim2.new(0.5, -251, 0.5, -166)
+	s.BackgroundTransparency = 1
+	tw(m, { BackgroundTransparency = self._alpha, Position = UDim2.new(0.5, -251, 0.5, -186) }, 0.45, Enum.EasingStyle.Back)
+	tw(s, { BackgroundTransparency = 0.82 }, 0.5)
+end
+
+function Library:_setupDrag()
+	local main   = self._main
+	local topBar = self._topBar
+	local dragging, dragStart, startPos = false, nil, nil
+
+	local c1 = topBar.InputBegan:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or
+		   inp.UserInputType == Enum.UserInputType.Touch then
+			dragging  = true
+			dragStart = inp.Position
+			startPos  = main.Position
+		end
+	end)
+	local c2 = UserInputService.InputChanged:Connect(function(inp)
+		if not dragging then return end
+		if inp.UserInputType ~= Enum.UserInputType.MouseMovement and
+		   inp.UserInputType ~= Enum.UserInputType.Touch then return end
+		local delta = inp.Position - dragStart
+		local nx = startPos.X.Offset + delta.X
+		local ny = startPos.Y.Offset + delta.Y
+		main.Position = UDim2.new(startPos.X.Scale, nx, startPos.Y.Scale, ny)
+		self._shadow.Position = UDim2.new(startPos.X.Scale, nx - 5, startPos.Y.Scale, ny - 5)
+	end)
+	local c3 = UserInputService.InputEnded:Connect(function(inp)
+		if inp.UserInputType == Enum.UserInputType.MouseButton1 or
+		   inp.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+	table.insert(self._conn, c1)
+	table.insert(self._conn, c2)
+	table.insert(self._conn, c3)
+end
+
+function Library:_toggleMinimize()
+	self._minimized = not self._minimized
+	if self._minimized then
+		tw(self._main,   { Size = UDim2.new(0, 502, 0, 47) }, 0.3)
+		tw(self._shadow, { Size = UDim2.new(0, 512, 0, 57) }, 0.3)
+		self._minBtn.Text = "□"
+	else
+		tw(self._main,   { Size = UDim2.new(0, 502, 0, 372) }, 0.3, Enum.EasingStyle.Back)
+		tw(self._shadow, { Size = UDim2.new(0, 512, 0, 382) }, 0.3, Enum.EasingStyle.Back)
+		self._minBtn.Text = "—"
+	end
+end
+
+function Library:_startIntegrity()
+	local ig = self._integrity
+	local hb
+	hb = RunService.Heartbeat:Connect(function()
+		if self._destroyed then hb:Disconnect() return end
+		if not ig.sg or not ig.sg.Parent then
+			hb:Disconnect()
+			self:_selfDestruct("root removed")
+			return
+		end
+		if ig.sg.Name ~= ig.sgName then
+			hb:Disconnect()
+			self:_selfDestruct("root name tampered")
+			return
+		end
+		if not ig.main or not ig.main.Parent then
+			hb:Disconnect()
+			self:_selfDestruct("main frame removed")
+			return
+		end
+		if ig.main.Name ~= ig.mainName then
+			hb:Disconnect()
+			self:_selfDestruct("main frame name tampered")
+			return
+		end
+	end)
+	table.insert(self._conn, hb)
+end
+
+function Library:_selfDestruct(reason)
+	if self._destroyed then return end
+	self._destroyed = true
+	pcall(function() if self._sg then self._sg:Destroy() end end)
+	for _, c in ipairs(self._conn) do pcall(function() c:Disconnect() end) end
+	table.clear(self._tabs)
+	table.clear(self._conn)
+	warn("[PhantomUI] Security: " .. tostring(reason))
+end
+
+function Library:CreateTab(name, icon)
+	if self._destroyed or self._locked then return nil end
+	name = name or "Tab"
+	local t     = self._t
+	local tabId = genId(8)
+
+	local tabBtn = new("TextButton", {
+		Name                  = tabId .. "_b",
+		Size                  = UDim2.new(1, 0, 0, 34),
+		BackgroundColor3      = t.TabInactive,
+		BackgroundTransparency = 0.3,
+		BorderSizePixel       = 0,
+		Font                  = Enum.Font.Gotham,
+		Text                  = (icon and (icon .. " ") or "  ") .. name,
+		TextColor3            = t.TextMuted,
+		TextSize              = 12,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		LayoutOrder           = #self._tabOrder + 1,
+		ZIndex                = 6,
+		Parent                = self._tabBar,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(0, 8), Parent = tabBtn })
+	new("UIPadding", { PaddingLeft = UDim.new(0, 10), Parent = tabBtn })
+
+	local indicator = new("Frame", {
+		Name             = genId(4),
+		Size             = UDim2.new(0, 3, 0.55, 0),
+		Position         = UDim2.new(0, -1, 0.225, 0),
+		BackgroundColor3 = t.Accent,
+		BackgroundTransparency = 1,
+		BorderSizePixel  = 0,
+		ZIndex           = 7,
+		Parent           = tabBtn,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 2), Parent = indicator })
+
+	local page = new("ScrollingFrame", {
+		Name                  = tabId .. "_p",
+		Size                  = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+		BorderSizePixel       = 0,
+		ScrollBarThickness    = 3,
+		ScrollBarImageColor3  = t.Scrollbar,
+		ScrollBarImageTransparency = 0.4,
+		CanvasSize            = UDim2.new(0, 0, 0, 0),
+		AutomaticCanvasSize   = Enum.AutomaticSize.Y,
+		Visible               = false,
+		ZIndex                = 5,
+		Parent                = self._contentArea,
+	})
+	new("UIPadding",    { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 12), Parent = page })
+	new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6), Parent = page })
+
+	local tabData = {
+		id        = tabId,
+		name      = name,
+		button    = tabBtn,
+		page      = page,
+		indicator = indicator,
+		_lib      = self,
+		_order    = #self._tabOrder + 1,
+	}
+	setmetatable(tabData, TabMethods)
+
+	self._tabs[tabId] = tabData
+	table.insert(self._tabOrder, tabId)
+
+	tabBtn.MouseEnter:Connect(function()
+		if self._activeTab ~= tabId then
+			tw(tabBtn, { BackgroundColor3 = t.TabHover, TextColor3 = t.TextSub, BackgroundTransparency = 0 }, 0.15)
+		end
+	end)
+	tabBtn.MouseLeave:Connect(function()
+		if self._activeTab ~= tabId then
+			tw(tabBtn, { BackgroundColor3 = t.TabInactive, TextColor3 = t.TextMuted, BackgroundTransparency = 0.3 }, 0.15)
+		end
+	end)
+	tabBtn.MouseButton1Click:Connect(function()
+		self:_selectTab(tabId)
+	end)
+
+	if #self._tabOrder == 1 then
+		self:_selectTab(tabId)
+	end
+	return tabData
+end
+
+function Library:_selectTab(tabId)
+	local t = self._t
+	for id, tab in pairs(self._tabs) do
+		tab.page.Visible = false
+		tw(tab.button,    { BackgroundColor3 = t.TabInactive, TextColor3 = t.TextMuted, BackgroundTransparency = 0.3 }, 0.15)
+		tw(tab.indicator, { BackgroundTransparency = 1 }, 0.15)
+	end
+	local sel = self._tabs[tabId]
+	if sel then
+		self._activeTab = tabId
+		sel.page.Visible = true
+		sel.page.CanvasPosition = Vector2.new(0, 0)
+		tw(sel.button,    { BackgroundColor3 = t.TabActive, TextColor3 = t.Text, BackgroundTransparency = 0 }, 0.2)
+		tw(sel.indicator, { BackgroundTransparency = 0 }, 0.2)
+	end
+end
+
+function Library:Notify(text, duration, kind)
+	if self._destroyed then return end
+	duration = duration or 3
+	kind     = kind or "info"
+	local t  = self._t
+
+	local accentColor = t.Accent
+	if kind == "success" then accentColor = t.Success
+	elseif kind == "warn" then accentColor = t.Warning
+	elseif kind == "error" then accentColor = t.Error end
+
+	self._notifyCount = self._notifyCount + 1
+	local order = self._notifyCount
+
+	local card = new("Frame", {
+		Name             = genId(6),
+		Size             = UDim2.new(1, 0, 0, 48),
+		BackgroundColor3 = t.NotifyBg,
+		BackgroundTransparency = 0.1,
+		BorderSizePixel  = 0,
+		LayoutOrder      = order,
+		ZIndex           = 52,
+		Parent           = self._notifyAnchor,
+	})
+	new("UICorner",  { CornerRadius = UDim.new(0, 10), Parent = card })
+	new("UIStroke",  { Color = accentColor, Thickness = 1, Transparency = 0.4, Parent = card })
+
+	local leftBar = new("Frame", {
+		Name             = genId(4),
+		Size             = UDim2.new(0, 3, 0.7, 0),
+		Position         = UDim2.new(0, 0, 0.15, 0),
+		BackgroundColor3 = accentColor,
+		BorderSizePixel  = 0,
+		ZIndex           = 53,
+		Parent           = card,
+	})
+	new("UICorner", { CornerRadius = UDim.new(0, 2), Parent = leftBar })
+
+	new("TextLabel", {
+		Name                  = genId(5),
+		Size                  = UDim2.new(1, -20, 1, 0),
+		Position              = UDim2.new(0, 14, 0, 0),
+		BackgroundTransparency = 1,
+		Font                  = Enum.Font.Gotham,
+		Text                  = text or "",
+		TextColor3            = t.Text,
+		TextSize              = 13,
+		TextWrapped           = true,
+		TextXAlignment        = Enum.TextXAlignment.Left,
+		ZIndex                = 53,
+		Parent                = card,
+	})
+
+	card.Position = UDim2.new(1, 10, 0, 0)
+	tw(card, { Position = UDim2.new(0, 0, 0, 0) }, 0.35, Enum.EasingStyle.Back)
+
+	task.delay(duration, function()
+		if not card or not card.Parent then return end
+		local t2 = tw(card, { BackgroundTransparency = 1, Position = UDim2.new(1, 10, 0, 0) }, 0.3)
+		t2.Completed:Connect(function()
+			pcall(function() card:Destroy() end)
+		end)
+	end)
+end
+
+function Library:Lock()
+	self._locked = true
+	if self._main then
+		new("Frame", {
+			Name                  = "_lock_" .. self._id,
+			Size                  = UDim2.new(1, 0, 1, 0),
+			BackgroundColor3      = Color3.fromRGB(0, 0, 0),
+			BackgroundTransparency = 0.6,
+			BorderSizePixel       = 0,
+			ZIndex                = 99,
+			Parent                = self._main,
+		})
+	end
+end
+
+function Library:Unlock()
+	self._locked = false
+	if self._main then
+		local overlay = self._main:FindFirstChild("_lock_" .. self._id)
+		if overlay then overlay:Destroy() end
+	end
+end
+
+function Library:SetAccent(color)
+	if not color then return end
+	local t = self._t
+	t.Accent     = color
+	t.AccentGlow = color
+	t.ToggleOn   = color
+	t.SliderFill = color
+	t.TabActive  = color
+	if self._activeTab then
+		local sel = self._tabs[self._activeTab]
+		if sel then
+			sel.button.BackgroundColor3 = color
+			sel.indicator.BackgroundColor3 = color
+		end
+	end
+end
+
+function Library:Destroy()
+	if self._destroyed then return end
+	self._destroyed = true
+	local m = self._main
+	local s = self._shadow
+	if m and s then
+		tw(m, { BackgroundTransparency = 1, Position = UDim2.new(0.5, -251, 0.5, -166) }, 0.35, Enum.EasingStyle.Quart)
+		local t2 = tw(s, { BackgroundTransparency = 1 }, 0.35)
+		t2.Completed:Connect(function()
+			pcall(function() if self._sg then self._sg:Destroy() end end)
+		end)
+	else
+		pcall(function() if self._sg then self._sg:Destroy() end end)
+	end
+	for _, c in ipairs(self._conn) do pcall(function() c:Disconnect() end) end
+	table.clear(self._tabs)
+	table.clear(self._conn)
+end
+
+return Library
