@@ -1,4 +1,4 @@
-print("v3")
+print("v4")
 local _ok = pcall(function()
 	assert(typeof ~= nil)
 	assert(game and workspace)
