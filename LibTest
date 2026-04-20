@@ -1,3 +1,4 @@
+print("cuai2")
 local _ok = pcall(function()
 	assert(typeof ~= nil)
 	assert(game and workspace)
