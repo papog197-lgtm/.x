@@ -1307,8 +1307,8 @@ function Library:_buildGUI()
 	local tabBarW = 120
 	local tabBar = new("Frame", {
 		Name                   = genId(7),
-		Size                   = UDim2.new(0, tabBarW, 1, 0),
-		Position               = UDim2.new(0, 0, 0, 0),
+Size     = UDim2.new(0, tabBarW, 1, -47),
+Position = UDim2.new(0, 0, 0, 47),
 		BackgroundColor3       = t.BgSec,
 		BackgroundTransparency = 0.15,
 		BorderSizePixel        = 0,
