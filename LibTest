@@ -89,13 +89,9 @@ local DEFAULT = {
 	Scrollbar   = Color3.fromRGB(100,  50, 180),
 }
 
--- ─────────────────────────────────────────────────────────
--- LOADING SCREEN: piccolo cerchio centrato nello schermo
--- ─────────────────────────────────────────────────────────
 local function showLoading(sg, t, version, onDone)
 	local screen = vp()
 
-	-- Overlay scuro semitrasparente
 	local overlay = new("Frame", {
 		Name                   = genId(6),
 		Size                   = UDim2.new(1, 0, 1, 0),
@@ -106,7 +102,6 @@ local function showLoading(sg, t, version, onDone)
 		Parent                 = sg,
 	})
 
-	-- Card circolare centrata (120x120)
 	local card = new("Frame", {
 		Name             = genId(6),
 		Size             = UDim2.new(0, 120, 0, 120),
@@ -119,7 +114,6 @@ local function showLoading(sg, t, version, onDone)
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = card })
 	new("UIStroke",  { Color = t.Accent, Thickness = 2.5, Transparency = 0.15, Parent = card })
 
-	-- Anello spinner (orbita)
 	local orbit = new("Frame", {
 		Name             = genId(5),
 		Size             = UDim2.new(0, 100, 0, 100),
@@ -130,7 +124,6 @@ local function showLoading(sg, t, version, onDone)
 		Parent           = overlay,
 	})
 
-	-- Pallino che orbita
 	local dot = new("Frame", {
 		Name             = genId(4),
 		Size             = UDim2.new(0, 10, 0, 10),
@@ -142,7 +135,6 @@ local function showLoading(sg, t, version, onDone)
 	})
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = dot })
 
-	-- Nome "KyUI" al centro
 	local nameLbl = new("TextLabel", {
 		Name                   = genId(5),
 		Size                   = UDim2.new(0, 120, 0, 24),
@@ -157,7 +149,6 @@ local function showLoading(sg, t, version, onDone)
 		Parent                 = overlay,
 	})
 
-	-- Versione (solo se fornita)
 	local verLbl = nil
 	if version and version ~= "" then
 		verLbl = new("TextLabel", {
@@ -175,7 +166,6 @@ local function showLoading(sg, t, version, onDone)
 		})
 	end
 
-	-- Animazione rotazione pallino
 	local angle = 0
 	local spinConn
 	spinConn = RunService.Heartbeat:Connect(function(dt)
@@ -191,7 +181,6 @@ local function showLoading(sg, t, version, onDone)
 		dot.Position = UDim2.new(0, nx, 0, ny)
 	end)
 
-	-- Fade in
 	tw(nameLbl, { TextTransparency = 0 }, 0.4)
 	if verLbl then tw(verLbl, { TextTransparency = 0 }, 0.5) end
 
@@ -405,7 +394,6 @@ end
 
 function TabMethods:Slider(text, min, max, default, callback)
 	local t   = self._lib._t
-	-- FIX: altezza aumentata per evitare clipping
 	local row = self:_row(58)
 	local val = clamp(default or min, min, max)
 
@@ -1068,41 +1056,33 @@ function Library:Init(cfg)
 	self._alpha = clamp(cfg.Transparency or 0.05, 0, 0.45)
 	self._title = cfg.Title    or "KyUI"
 	self._sub   = cfg.Subtitle or ""
-	-- Versione estratta dal Subtitle (es. "v1.0") o da cfg.Version
 	self._version = cfg.Version or (cfg.Subtitle and cfg.Subtitle ~= "" and cfg.Subtitle) or ""
 	self._ready = false
 	self._minimized = false
 
-self:_buildGUI()
-print("DEBUG:", self._main.Name, self._mainId, self._main.Name == self._mainId)
+	self:_buildGUI()
 
-	-- FIX LAG: posizione lerp già corretta prima del drag setup,
-	-- RenderStepped non gira inutilmente se non c'è movimento
-showLoading(self._sg, t, self._version, function()
-    if self._destroyed then return end
-    self._ready = true
-    self._main.Visible = true
-    self:_setupDrag()
-    self:_setupGlow()
-    self:_startIntegrity()
-    self:_animIn()
-    -- Aspetta 2 frame per il layout, poi riseleziona
-    task.wait()
-    task.wait()
-    if self._activeTab then
-        local act = self._activeTab
-        self._activeTab = nil
-        self:_selectTab(act)
-    end
-end)
+	showLoading(self._sg, t, self._version, function()
+		if self._destroyed then return end
+		self._ready = true
+		self._main.Visible = true
+		self:_setupDrag()
+		self:_setupGlow()
+		self:_startIntegrity()
+		self:_animIn()
+		task.wait()
+		task.wait()
+		if self._activeTab then
+			local act = self._activeTab
+			self._activeTab = nil
+			self:_selectTab(act)
+		end
+	end)
 
 	task.delay(6, function()
 		if not self._ready and not self._destroyed then
 			self._ready = true
-            self._main.Visible = true   -- ← AGGIUNTO
-
-self._tabBar.Visible = false
-self._tabBar.Visible = true
+			self._main.Visible = true
 			self:_setupDrag()
 			self:_setupGlow()
 			self:_startIntegrity()
@@ -1173,7 +1153,7 @@ function Library:_buildGUI()
 	new("UICorner", { CornerRadius = UDim.new(0, 12), Parent = main })
 	new("UIStroke",  { Color = t.Border, Thickness = 1.5, Transparency = 0.25, Parent = main })
 	self._main   = main
-    main.Visible = false
+	main.Visible = false
 	self._mainId = main.Name
 
 	local topAccent = new("Frame", {
@@ -1220,6 +1200,7 @@ function Library:_buildGUI()
 	new("UICorner", { CornerRadius = UDim.new(1, 0), Parent = glow2 })
 	self._glow2 = glow2
 
+	-- topBar: ZIndex=5, occupa Y=3..47
 	local topBar = new("Frame", {
 		Name                   = genId(7),
 		Size                   = UDim2.new(1, 0, 0, 44),
@@ -1303,23 +1284,25 @@ function Library:_buildGUI()
 	new("UICorner", { CornerRadius = UDim.new(0, 6), Parent = minBtn })
 	self._minBtn = minBtn
 
-	-- FIX TAB BAR: larghezza esplicita e non clipsDescendants per evitare tag invisibili
+	-- ╔══════════════════════════════════════════════════════╗
+	-- ║  FIX: tabBar parte da Y=47 (sotto topBar) e         ║
+	-- ║  ZIndex=6 (sopra topBar ZIndex=5)                   ║
+	-- ╚══════════════════════════════════════════════════════╝
 	local tabBarW = 120
 	local tabBar = new("Frame", {
 		Name                   = genId(7),
-Size     = UDim2.new(0, tabBarW, 1, -47),
-Position = UDim2.new(0, 0, 0, 47),
+		Size                   = UDim2.new(0, tabBarW, 1, -47),  -- FIX: era (0,tabBarW,1,0)
+		Position               = UDim2.new(0, 0, 0, 47),         -- FIX: era (0,0,0,0)
 		BackgroundColor3       = t.BgSec,
 		BackgroundTransparency = 0.15,
 		BorderSizePixel        = 0,
-		ZIndex                 = 4,
+		ZIndex                 = 6,                               -- FIX: era 4 (coperto da topBar ZIndex=5)
 		ClipsDescendants       = false,
 		Parent                 = main,
 	})
 	self._tabBar    = tabBar
 	self._tabBarW   = tabBarW
 
-	-- Separatore verticale tra tabBar e content
 	new("Frame", {
 		Name                   = genId(4),
 		Size                   = UDim2.new(0, 1, 1, 0),
@@ -1343,7 +1326,7 @@ Position = UDim2.new(0, 0, 0, 47),
 		Parent       = tabBar,
 	})
 
-	-- FIX CONTENT AREA: posizione e dimensione coerenti con tabBarW
+	-- contentArea: parte da Y=47, larghezza = main - tabBarW
 	local contentArea = new("Frame", {
 		Name                   = genId(7),
 		Size                   = UDim2.new(1, -tabBarW, 1, -47),
@@ -1356,11 +1339,9 @@ Position = UDim2.new(0, 0, 0, 47),
 	})
 	self._contentArea = contentArea
 
-	-- ─── NOTIFY HOLDER: in basso a destra dello schermo (fisso) ───
 	local notifyHolder = new("Frame", {
 		Name                   = genId(6),
 		Size                   = UDim2.new(0, 280, 0, 0),
-		-- AnchorPoint non disponibile direttamente, usiamo offset calcolato
 		Position               = UDim2.new(1, -294, 1, -14),
 		BackgroundTransparency = 1,
 		ZIndex                 = 50,
@@ -1380,21 +1361,22 @@ Position = UDim2.new(0, 0, 0, 47),
 	closeBtn.MouseLeave:Connect(function() tw(closeBtn, { BackgroundTransparency = 0.25 }, 0.12) end)
 	minBtn.MouseButton1Click:Connect(function() self:_toggleMinimize() end)
 
-self._integrity = {
-    sgId   = self._sgId,
-    mainId = self._main.Name,
-    sg     = sg,
-    main   = main,
-}
+	self._integrity = {
+		sgId   = self._sgId,
+		mainId = self._main.Name,
+		sg     = sg,
+		main   = main,
+	}
 end
 
 function Library:_animIn()
-    local m = self._main
-    local s = self._shadow
-    m.Visible = true  -- ← QUESTA RIGA MANCA
-    tw(m, { BackgroundTransparency = self._alpha }, 0.5, Enum.EasingStyle.Quart)
-    tw(s, { BackgroundTransparency = 0.84 }, 0.5)
+	local m = self._main
+	local s = self._shadow
+	m.Visible = true
+	tw(m, { BackgroundTransparency = self._alpha }, 0.5, Enum.EasingStyle.Quart)
+	tw(s, { BackgroundTransparency = 0.84 }, 0.5)
 end
+
 function Library:_setupDrag()
 	local main    = self._main
 	local topBar  = self._topBar
@@ -1429,14 +1411,11 @@ function Library:_setupDrag()
 		end
 	end)
 
-	-- FIX LAG: RenderStepped gira solo quando si sta trascinando
-	-- (usando flag _dragging per evitare lavoro inutile ogni frame)
 	local c4 = RunService.RenderStepped:Connect(function(dt)
 		if self._destroyed then return end
 		local diffX = self._targX - self._lerpX
 		local diffY = self._targY - self._lerpY
 		if math.abs(diffX) < 0.3 and math.abs(diffY) < 0.3 then
-			-- Snap e poi stop
 			if diffX ~= 0 or diffY ~= 0 then
 				self._lerpX = self._targX
 				self._lerpY = self._targY
@@ -1454,7 +1433,6 @@ function Library:_setupDrag()
 		local ly = math.floor(self._lerpY + 0.5)
 		main.Position         = UDim2.new(0, lx, 0, ly)
 		self._shadow.Position = UDim2.new(0, lx - 10, 0, ly - 10)
-		-- notifyHolder rimane fisso in basso a destra, non si muove con la finestra
 	end)
 
 	table.insert(self._conn, c1)
@@ -1530,7 +1508,6 @@ function Library:CreateTab(name, icon)
 	local t     = self._t
 	local tabId = genId(8)
 
-	-- FIX: emoji + testo con padding corretto
 	local label = (icon and icon .. " " or "") .. name
 
 	local tabBtn = new("TextButton", {
@@ -1549,7 +1526,6 @@ function Library:CreateTab(name, icon)
 		ZIndex                 = 6,
 		Parent                 = self._tabBar,
 	})
-print("tabBar name=", self._tabBar.Name, "tabBtn.Parent.Name=", tabBtn.Parent.Name, "sono uguali=", self._tabBar.Name == tabBtn.Parent.Name)
 	new("UICorner",  { CornerRadius = UDim.new(0, 7), Parent = tabBtn })
 	new("UIPadding", { PaddingLeft = UDim.new(0, 8), Parent = tabBtn })
 
@@ -1565,7 +1541,6 @@ print("tabBar name=", self._tabBar.Name, "tabBtn.Parent.Name=", tabBtn.Parent.Na
 	})
 	new("UICorner", { CornerRadius = UDim.new(0, 2), Parent = indicator })
 
-	-- FIX: page dentro contentArea con dimensioni corrette
 	local page = new("ScrollingFrame", {
 		Name                       = tabId .. "_p",
 		Size                       = UDim2.new(1, 0, 1, 0),
@@ -1606,7 +1581,6 @@ print("tabBar name=", self._tabBar.Name, "tabBtn.Parent.Name=", tabBtn.Parent.Na
 
 	self._tabs[tabId] = data
 	table.insert(self._tabOrder, tabId)
-print("CREATETAB: tabId=", tabId, "tabBar parent=", self._tabBar.Parent, "tabBtn parent=", tabBtn.Parent, "tabBtn visible=", tabBtn.Visible)
 
 	tabBtn.MouseEnter:Connect(function()
 		if self._activeTab ~= tabId then
@@ -1636,17 +1610,14 @@ function Library:_selectTab(tabId)
 		tw(tab.indicator, { BackgroundTransparency = 1 }, 0.12)
 	end
 	local sel = self._tabs[tabId]
-if sel then
-    print("SELECTTAB: page=", sel.page, "visible prima=", sel.page.Visible, "parent=", sel.page.Parent, "parentVisible=", sel.page.Parent and sel.page.Parent.Visible)
-    self._activeTab = tabId
-    sel.page.Visible = true
-    print("SELECTTAB: page visible dopo=", sel.page.Visible)
+	if sel then
+		self._activeTab = tabId
+		sel.page.Visible = true
 		tw(sel.button,    { BackgroundColor3 = t.TabActive, BackgroundTransparency = 0, TextColor3 = t.Text }, 0.18)
 		tw(sel.indicator, { BackgroundTransparency = 0 }, 0.18)
 	end
 end
 
--- ─── NOTIFY: fisso in basso a destra dello schermo ───
 function Library:Notify(text, duration, kind)
 	if self._destroyed then return end
 	duration = duration or 3
@@ -1699,7 +1670,6 @@ function Library:Notify(text, duration, kind)
 		Parent                 = card,
 	})
 
-	-- Slide in da destra
 	card.Position = UDim2.new(1, 20, 0, 0)
 	tw(card, { Position = UDim2.new(0, 0, 0, 0) }, 0.32, Enum.EasingStyle.Back)
 
